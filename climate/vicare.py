@@ -189,6 +189,7 @@ class ViCareClimate(ClimateDevice):
         """Turn away mode on."""
         self._away = True
         self._previous_mode = self._current_mode
+        self._current_mode = VICARE_MODE_FORCEDREDUCED
         self._api.setMode(VICARE_MODE_FORCEDREDUCED)
         self.aync_schedule_update_ha_state(True)
 
@@ -196,17 +197,20 @@ class ViCareClimate(ClimateDevice):
         """Turn away mode off."""
         self._away = False
         self._api.setMode(self._previous_mode)
+        self._current_mode = self._previous_mode
         self.aync_schedule_update_ha_state(True)
 
     def turn_on(self):
         """Turn on."""
         self._on = True
         self._api.setMode(self._previous_mode)
+        self._current_mode = self._previous_mode
         self.aync_schedule_update_ha_state(True)
 
     def turn_off(self):
         """Turn off."""
         self._on = False
         self._previous_mode = self._current_mode
+        self._current_mode = VICARE_MODE_OFF
         self._api.setMode(VICARE_MODE_OFF)
         self.aync_schedule_update_ha_state(True)
