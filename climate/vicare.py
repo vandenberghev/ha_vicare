@@ -7,7 +7,7 @@ from homeassistant.components.climate import (
     ClimateDevice, SUPPORT_TARGET_TEMPERATURE, SUPPORT_AWAY_MODE,
     SUPPORT_OPERATION_MODE, SUPPORT_ON_OFF,
     STATE_OFF, STATE_HEAT, STATE_ECO, STATE_AUTO, STATE_UNKNOWN)
-from homeassistant.const import (TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE, CONF_USERNAME, CONF_PASSWORD)
+from homeassistant.const import (TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE, CONF_USERNAME, CONF_PASSWORD, CONF_NAME)
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
@@ -40,14 +40,15 @@ VALUE_UNKNOWN = 'unknown'
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_USERNAME): cv.string,
     vol.Required(CONF_PASSWORD): cv.string,
-    vol.Optional(CONF_CIRCUIT, default=0): cv.positive_int
+    vol.Optional(CONF_CIRCUIT, default=0): cv.positive_int,
+    vol.Optional(CONF_NAME, default='ViCare'): cv.string
 })
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     from PyViCare import ViCareSession
     t = ViCareSession(config.get(CONF_USERNAME), config.get(CONF_PASSWORD), "/tmp/vicare_token.save", config.get(CONF_CIRCUIT))
     add_entities([
-        ViCareClimate('vicare', t)
+        ViCareClimate(config.get(CONF_NAME), t)
     ])
 
 
