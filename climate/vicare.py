@@ -176,7 +176,7 @@ class ViCareClimate(ClimateDevice):
         if self._current_mode == VICARE_MODE_DHWANDHEATING:
             self._api.setProgramTemperature(self._current_program, self._target_temperature)
         elif self._current_mode == VICARE_MODE_FORCEDNORMAL:
-            self._api.setReducedTemperature(self._target_temperature)
+            self._api.setNormalTemperature(self._target_temperature)
         elif self._current_mode == VICARE_MODE_FORCEDREDUCED:
             self._api.setReducedTemperature(self._target_temperature)
         else:
