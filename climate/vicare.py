@@ -139,12 +139,13 @@ class ViCareClimate(ClimateDevice):
             else:
                 _LOGGER.error(
                     "An error occurred while setting operation mode. "
-                    "Invalid operation mode: %s", operation_mode)
+                    "Unknown operation mode: %s", operation_mode)
         else:
             _LOGGER.error(
                 "An error occurred while setting operation mode. "
-                "Invalid operation mode: %s", operation_mode)
+                "Unsupported operation mode: %s", operation_mode)
 
+        self.aync_schedule_update_ha_state(True)
     @property
     def operation_list(self):
         """Return the list of available operation modes."""
@@ -182,30 +183,30 @@ class ViCareClimate(ClimateDevice):
             _LOGGER.error(
                 "Cannot set the temperature for mode '%s'", self._current_mode)
                 
-        self.schedule_update_ha_state()
+        self.aync_schedule_update_ha_state(True)
 
     def turn_away_mode_on(self):
         """Turn away mode on."""
         self._away = True
         self._previous_mode = self._current_mode
         self._api.setMode(VICARE_MODE_FORCEDREDUCED)
-        self.schedule_update_ha_state()
+        self.aync_schedule_update_ha_state(True)
 
     def turn_away_mode_off(self):
         """Turn away mode off."""
         self._away = False
         self._api.setMode(self._previous_mode)
-        self.schedule_update_ha_state()
+        self.aync_schedule_update_ha_state(True)
 
     def turn_on(self):
         """Turn on."""
         self._on = True
         self._api.setMode(self._previous_mode)
-        self.schedule_update_ha_state()
+        self.aync_schedule_update_ha_state(True)
 
     def turn_off(self):
         """Turn off."""
         self._on = False
         self._previous_mode = self._current_mode
         self._api.setMode(VICARE_MODE_OFF)
-        self.schedule_update_ha_state()
+        self.aync_schedule_update_ha_state(True)
