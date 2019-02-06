@@ -7,9 +7,12 @@ from homeassistant.components.climate import (
     ClimateDevice, SUPPORT_TARGET_TEMPERATURE, SUPPORT_AWAY_MODE,
     SUPPORT_OPERATION_MODE, SUPPORT_ON_OFF,
     STATE_OFF, STATE_HEAT, STATE_ECO, STATE_AUTO, STATE_UNKNOWN)
-from homeassistant.const import (TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE, CONF_USERNAME, CONF_PASSWORD, CONF_NAME)
+from homeassistant.const import (
+    TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE,
+    CONF_USERNAME, CONF_PASSWORD, CONF_NAME, PRECISION_WHOLE)
 from homeassistant.helpers.entity import Entity
 import homeassistant.helpers.config_validation as cv
+from homeassistant.util.temperature import convert as convert_temperature
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 import voluptuous as vol
 
@@ -17,7 +20,6 @@ _LOGGER = logging.getLogger(__name__)
 
 REQUIREMENTS = ['PyViCare==0.0.22']
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_OPERATION_MODE | SUPPORT_ON_OFF
 CONF_CIRCUIT = 'circuit'
 
 VICARE_MODE_DHW = 'dhw'
@@ -35,6 +37,14 @@ VICARE_PROGRAM_EXTERNAL = 'external'
 #VICARE_PROGRAM_REDUCED = 'reduced'
 #VICARE_PROGRAM_STANDBY = 'standby'
 
+VICARE_TEMP_WATER_MIN = 10
+VICARE_TEMP_WATER_MAX = 60
+VICARE_TEMP_HEATING_MIN = 3
+VICARE_TEMP_HEATING_MAX = 37
+
+SUPPORT_FLAGS_HEATING = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_OPERATION_MODE | SUPPORT_ON_OFF
+SUPPORT_FLAGS_WATER = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_OPERATION_MODE | SUPPORT_ON_OFF
+
 VALUE_UNKNOWN = 'unknown'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
@@ -48,7 +58,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     from PyViCare import ViCareSession
     t = ViCareSession(config.get(CONF_USERNAME), config.get(CONF_PASSWORD), "/tmp/vicare_token.save", config.get(CONF_CIRCUIT))
     add_entities([
-        ViCareClimate(config.get(CONF_NAME), t)
+        ViCareClimate(config.get(CONF_NAME) + ' Heating', t),
+        ViCareWater(config.get(CONF_NAME) + ' Water', t)
     ])
 
 
@@ -59,8 +70,8 @@ class ViCareClimate(ClimateDevice):
         """Initialize the climate device."""
         self._name = name
         self._api = api
-        self._support_flags = SUPPORT_FLAGS
-        self._unit_of_measurement = TEMP_CELSIUS
+        self._support_flags = SUPPORT_FLAGS_HEATING
+        self._unit_of_measurement = hass.config.units.temperature_unit
         self._on = None
         self._away = None
         self._target_temperature = None
@@ -167,6 +178,21 @@ class ViCareClimate(ClimateDevice):
         """Return true if the device is on."""
         return self._on
 
+    @property
+    def min_temp(self):
+        """Return the minimum temperature."""
+        return convert_temperature(VICARE_TEMP_HEATING_MIN, TEMP_CELSIUS, self.temperature_unit)
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature."""
+        return convert_temperature(VICARE_TEMP_HEATING_MAX, TEMP_CELSIUS, self.temperature_unit)
+
+    @property
+    def precision(self):
+        """Return the precision of the system."""
+        return PRECISION_WHOLE
+
     def set_temperature(self, **kwargs):
         """Set new target temperatures."""
         if kwargs.get(ATTR_TEMPERATURE) is not None:
@@ -215,3 +241,74 @@ class ViCareClimate(ClimateDevice):
         self._current_mode = VICARE_MODE_OFF
         self._api.setMode(VICARE_MODE_OFF)
         self.schedule_update_ha_state()
+
+class ViCareWater(ClimateDevice):
+
+    def __init__(self, name, api):
+        """Initialize the climate device."""
+        self._name = name
+        self._api = api
+        self._support_flags = SUPPORT_FLAGS_WATER
+        self._unit_of_measurement = hass.config.units.temperature_unit
+        self._target_temperature = None
+        self._current_temperature = None
+
+    def update(self):
+        current_temperature = self._api.getDomesticHotWaterStorageTemperature() 
+        if current_temperature is not None and current_temperature != "error":
+            self._current_temperature = current_temperature
+        else:
+            self._current_temperature = -1
+
+        self._target_temperature = self._api.getDomesticHotWaterConfiguredTemperature()
+
+    @property
+    def supported_features(self):
+        """Return the list of supported features."""
+        return self._support_flags
+
+    @property
+    def name(self):
+        """Return the name of the climate device."""
+        return self._name
+
+    @property
+    def temperature_unit(self):
+        """Return the unit of measurement."""
+        return self._unit_of_measurement
+
+    @property
+    def current_temperature(self):
+        """Return the current temperature."""
+        return self._current_temperature
+
+    @property
+    def target_temperature(self):
+        """Return the temperature we try to reach."""
+        return self._target_temperature
+
+    def set_temperature(self, **kwargs):
+        """Set new target temperatures."""
+        if kwargs.get(ATTR_TEMPERATURE) is not None:
+            self._target_temperature = kwargs.get(ATTR_TEMPERATURE)
+        else:
+            return
+        
+        self._api.setDomesticHotWaterTemperature(self._target_temperature)
+                
+        self.schedule_update_ha_state()
+    
+    @property
+    def min_temp(self):
+        """Return the minimum temperature."""
+        return convert_temperature(VICARE_TEMP_WATER_MIN, TEMP_CELSIUS, self.temperature_unit)
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature."""
+        return convert_temperature(VICARE_TEMP_WATER_MAX, TEMP_CELSIUS, self.temperature_unit)
+
+    @property
+    def precision(self):
+        """Return the precision of the system."""
+        return PRECISION_WHOLE
