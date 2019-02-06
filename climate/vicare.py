@@ -58,15 +58,15 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     from PyViCare import ViCareSession
     t = ViCareSession(config.get(CONF_USERNAME), config.get(CONF_PASSWORD), "/tmp/vicare_token.save", config.get(CONF_CIRCUIT))
     add_entities([
-        ViCareClimate(config.get(CONF_NAME) + ' Heating', t),
-        ViCareWater(config.get(CONF_NAME) + ' Water', t)
+        ViCareClimate(hass, config.get(CONF_NAME) + ' Heating', t),
+        ViCareWater(hass, config.get(CONF_NAME) + ' Water', t)
     ])
 
 
 class ViCareClimate(ClimateDevice):
     """Representation of a demo climate device."""
 
-    def __init__(self, name, api):
+    def __init__(self, hass, name, api):
         """Initialize the climate device."""
         self._name = name
         self._api = api
@@ -244,7 +244,7 @@ class ViCareClimate(ClimateDevice):
 
 class ViCareWater(ClimateDevice):
 
-    def __init__(self, name, api):
+    def __init__(self, hass, name, api):
         """Initialize the climate device."""
         self._name = name
         self._api = api
