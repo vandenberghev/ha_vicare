@@ -18,7 +18,7 @@ import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['PyViCare==0.0.22']
+REQUIREMENTS = ['PyViCare==0.0.30']
 
 CONF_CIRCUIT = 'circuit'
 
